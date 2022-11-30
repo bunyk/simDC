@@ -1,5 +1,5 @@
-# simcomp
-Simulator of digital circuits on a infinite circuit board.
+# simDC
+**Sim**ulator for **D**igital **C**ircuits on a infinite circuit board.
 
 Inspired by [SICP 3.3.4](https://bunyk.github.io/posts/sicp3.3.4) and [Sebastian Lague](https://www.youtube.com/watch?v=QZwneRb-zqA).
 
