@@ -81,7 +81,10 @@ func (cb *CircuitBoard) AddChip(chip string, x, y int) {
 	p := GridPoint{x, y}
 	ci := NewChipInstance(chip, p)
 	cb.Chips = append(cb.Chips, ci)
-	ci.Process(cb)
+
+	go func(ch ChipInstance) {
+		ch.Process(cb)
+	}(ci)
 }
 
 func (cb *CircuitBoard) Save() {
@@ -152,7 +155,6 @@ func (cb *CircuitBoard) Load() {
 		fmt.Println(err)
 		return
 	}
-	cb.Chips = mcb.Chips
 	for _, wire := range mcb.Wires {
 		cb.AddWire(wire[0], wire[1], wire[2], wire[3], false)
 	}
@@ -161,6 +163,9 @@ func (cb *CircuitBoard) Load() {
 	}
 	for _, l := range mcb.Lamps {
 		cb.AddLamp(l[0], l[1])
+	}
+	for _, ch := range mcb.Chips {
+		cb.AddChip(ch.Class, ch.Location.X, ch.Location.Y)
 	}
 }
 
