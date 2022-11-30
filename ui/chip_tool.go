@@ -2,6 +2,7 @@ package ui
 
 import (
 	"github.com/faiface/pixel"
+	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
 )
 
@@ -23,11 +24,14 @@ var unpoweredPins = []bool{
 
 func (ct ChipTool) Draw(win *pixelgl.Window, mp pixel.Vec) {
 	mp = cellAlign(mp)
+	imd := imdraw.New(nil)
 	drawChip(
+		imd,
 		win,
 		mp,
 		ct.Class,
 		unpoweredPins[0:ChipClasses[ct.Class].InputsCount],
 		unpoweredPins[0:ChipClasses[ct.Class].OutputsCount],
 	)
+	imd.Draw(win)
 }

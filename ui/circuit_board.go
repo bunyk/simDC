@@ -9,6 +9,8 @@ import (
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
+	"github.com/faiface/pixel/text"
+	"golang.org/x/image/colornames"
 )
 
 type GridPoint struct {
@@ -219,15 +221,16 @@ func (cb *CircuitBoard) SetElementSignal(p GridPoint, signal bool) {
 func (cb CircuitBoard) Draw(win *pixelgl.Window) {
 	//start := time.Now()
 	imd := imdraw.New(nil)
+	imd.Precision = 10
 	for p, sw := range cb.Switches {
 		if sw == nil {
 			continue
 		}
-		drawSwitch(win, p.Pos(), *sw)
+		drawSwitch(imd, win, p.Pos(), *sw)
 	}
 
 	for _, chip := range cb.Chips {
-		chip.Draw(win)
+		chip.Draw(imd, win)
 	}
 	seenWG := make(map[*WireGroup]bool)
 	for _, group := range cb.WireGroups {
@@ -245,6 +248,16 @@ func (cb CircuitBoard) Draw(win *pixelgl.Window) {
 		drawLamp(imd, p.Pos(), *lamp)
 	}
 	imd.Draw(win)
+	for label, locations := range labels {
+		txt := text.New(pixel.ZV, FontAtlas)
+		txt.Color = colornames.Black
+		fmt.Fprint(txt, label)
+		tc := txt.Bounds().Center()
+		for _, loc := range locations {
+			txt.Draw(win, pixel.IM.Moved(loc.Sub(tc)))
+		}
+	}
+	labels = make(map[string][]pixel.Vec)
 	// fmt.Printf("Rendered %d switches, %d chips, %d wire groups and %d lamps in %s\n",
 	// 	len(cb.Switches), len(cb.Chips), len(cb.WireGroups), len(cb.Lamps), time.Since(start),
 	// )

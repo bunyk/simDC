@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/faiface/pixel"
+	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
 )
 
@@ -29,5 +30,7 @@ func (st *SwitchTool) Update(win *pixelgl.Window, cb *CircuitBoard, mp pixel.Vec
 
 func (st *SwitchTool) Draw(win *pixelgl.Window, mp pixel.Vec) {
 	mp = cellAlign(mp)
-	drawSwitch(win, mp, false)
+	imd := imdraw.New(nil)
+	drawSwitch(imd, win, mp, false)
+	imd.Draw(win)
 }

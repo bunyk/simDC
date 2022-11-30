@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"image/color"
 
 	"github.com/faiface/pixel"
@@ -40,9 +39,7 @@ func max(a, b int) int {
 	return b
 }
 
-func drawChip(win *pixelgl.Window, mp pixel.Vec, title string, inputs []bool, outputs []bool) {
-	imd := imdraw.New(nil)
-
+func drawChip(imd *imdraw.IMDraw, win *pixelgl.Window, mp pixel.Vec, title string, inputs []bool, outputs []bool) {
 	for i, s := range inputs {
 		imd.Color = signalColor(s)
 		imd.Push(mp.Add(pixel.V(
@@ -68,26 +65,22 @@ func drawChip(win *pixelgl.Window, mp pixel.Vec, title string, inputs []bool, ou
 		-GRID_SIZE*(float64(height)-0.5),
 	)))
 	imd.Rectangle(0)
-	imd.Draw(win)
 
-	txt := text.New(pixel.ZV, FontAtlas)
-	txt.Color = colornames.Black
-	fmt.Fprint(txt, title)
-	textPos := mp.Sub(txt.Bounds().Center()).
-		Add(pixel.V(GRID_SIZE/2, 0))
-	txt.Draw(win, pixel.IM.Moved(textPos))
+	labels[title] = append(labels[title], mp.Add(pixel.V(GRID_SIZE/2, 0)))
 }
+
+var labels = make(map[string][]pixel.Vec) // map strings to list of locations where they should appear
 
 const SWITCH_WIDTH = GRID_SIZE
 const SWITCH_HEIGHT = GRID_SIZE
 const LAMP_RADIUS = GRID_SIZE / 2
 
-func drawSwitch(win *pixelgl.Window, mp pixel.Vec, state bool) {
+func drawSwitch(imd *imdraw.IMDraw, win *pixelgl.Window, mp pixel.Vec, state bool) {
 	title := "OFF"
 	if state {
 		title = "ON"
 	}
-	drawChip(win, mp, title, []bool{}, []bool{state})
+	drawChip(imd, win, mp, title, []bool{}, []bool{state})
 }
 
 func drawLamp(imd *imdraw.IMDraw, mp pixel.Vec, state bool) {

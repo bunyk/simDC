@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
 )
 
@@ -68,8 +69,9 @@ func (ci *ChipInstance) SetInputSignal(index int, signal bool) {
 	ci.Outputs = ChipClasses[ci.Class].Logic(ci.Inputs)
 }
 
-func (ci ChipInstance) Draw(win *pixelgl.Window) {
+func (ci ChipInstance) Draw(imd *imdraw.IMDraw, win *pixelgl.Window) {
 	drawChip(
+		imd,
 		win,
 		ci.Location.Pos(),
 		ci.Class,
