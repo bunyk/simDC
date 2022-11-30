@@ -115,4 +115,6 @@ func (w *Workspace) Draw(win *pixelgl.Window) {
 
 	mp := cm.Unproject(win.MousePosition())
 	w.UsedTool.Draw(win, mp)
+
+	DrawLabels(win)
 }

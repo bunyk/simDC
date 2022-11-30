@@ -17,21 +17,11 @@ func (ct ChipTool) Update(win *pixelgl.Window, cb *CircuitBoard, mp pixel.Vec) {
 	}
 }
 
-var unpoweredPins = []bool{
-	false, false, false, false, false, false, false, false, false, false,
-	false, false, false, false, false, false, false, false, false, false,
-}
-
 func (ct ChipTool) Draw(win *pixelgl.Window, mp pixel.Vec) {
 	mp = cellAlign(mp)
 	imd := imdraw.New(nil)
-	drawChip(
-		imd,
-		win,
-		mp,
-		ct.Class,
-		unpoweredPins[0:ChipClasses[ct.Class].InputsCount],
-		unpoweredPins[0:ChipClasses[ct.Class].OutputsCount],
-	)
+	class := ChipClasses[ct.Class]
+	drawChip(imd, mp, ct.Class, class.Height())
+	drawChipPins(imd, mp, class.InputsCount, class.OutputsCount)
 	imd.Draw(win)
 }

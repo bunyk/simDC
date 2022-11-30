@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"image/color"
 
 	"github.com/faiface/pixel"
@@ -39,52 +40,66 @@ func max(a, b int) int {
 	return b
 }
 
-func drawChip(imd *imdraw.IMDraw, win *pixelgl.Window, mp pixel.Vec, title string, inputs []bool, outputs []bool) {
-	for i, s := range inputs {
-		imd.Color = signalColor(s)
-		imd.Push(mp.Add(pixel.V(
-			0,
-			-GRID_SIZE*float64(i),
-		)))
-		imd.Circle(HOLE_RADIUS, 0)
-	}
-	for i, s := range outputs {
-		imd.Color = signalColor(s)
-		imd.Push(mp.Add(pixel.V(
-			GRID_SIZE,
-			-GRID_SIZE*(float64(i)),
-		)))
-		imd.Circle(HOLE_RADIUS, 0)
-	}
+func drawChip(imd *imdraw.IMDraw, pos pixel.Vec, title string, height int) {
 
 	imd.Color = colornames.Darkgray
-	height := max(len(inputs), len(outputs))
-	imd.Push(mp.Add(pixel.V(0, GRID_SIZE/2)))
-	imd.Push(mp.Add(pixel.V(
+	imd.Push(pos.Add(pixel.V(0, GRID_SIZE/2)))
+	imd.Push(pos.Add(pixel.V(
 		GRID_SIZE,
 		-GRID_SIZE*(float64(height)-0.5),
 	)))
 	imd.Rectangle(0)
 
-	labels[title] = append(labels[title], mp.Add(pixel.V(GRID_SIZE/2, 0)))
+	labels[title] = append(labels[title], pos.Add(pixel.V(GRID_SIZE/2, 0)))
 }
 
 var labels = make(map[string][]pixel.Vec) // map strings to list of locations where they should appear
+
+func DrawLabels(win *pixelgl.Window) {
+	for label, locations := range labels {
+		txt := text.New(pixel.ZV, FontAtlas)
+		txt.Color = colornames.Black
+		fmt.Fprint(txt, label)
+		tc := txt.Bounds().Center()
+		for _, loc := range locations {
+			txt.Draw(win, pixel.IM.Moved(loc.Sub(tc)))
+		}
+	}
+	labels = make(map[string][]pixel.Vec)
+}
+
+func drawChipPins(imd *imdraw.IMDraw, pos pixel.Vec, numLeft, numRight int) {
+	imd.Color = signalColor(false)
+	for i := 0; i < numLeft; i++ {
+		imd.Push(pos.Add(pixel.V(
+			0,
+			-GRID_SIZE*float64(i),
+		)))
+		imd.Circle(HOLE_RADIUS, 0)
+	}
+	for i := 0; i < numRight; i++ {
+		imd.Push(pos.Add(pixel.V(
+			GRID_SIZE,
+			-GRID_SIZE*float64(i),
+		)))
+		imd.Circle(HOLE_RADIUS, 0)
+	}
+}
 
 const SWITCH_WIDTH = GRID_SIZE
 const SWITCH_HEIGHT = GRID_SIZE
 const LAMP_RADIUS = GRID_SIZE / 2
 
-func drawSwitch(imd *imdraw.IMDraw, win *pixelgl.Window, mp pixel.Vec, state bool) {
+func drawSwitch(imd *imdraw.IMDraw, win *pixelgl.Window, pos pixel.Vec, state bool) {
 	title := "OFF"
 	if state {
 		title = "ON"
 	}
-	drawChip(imd, win, mp, title, []bool{}, []bool{state})
+	drawChip(imd, pos, title, 1)
 }
 
-func drawLamp(imd *imdraw.IMDraw, mp pixel.Vec, state bool) {
+func drawLamp(imd *imdraw.IMDraw, pos pixel.Vec, state bool) {
 	imd.Color = signalColor(state)
-	imd.Push(mp)
+	imd.Push(pos)
 	imd.Circle(LAMP_RADIUS, 0)
 }

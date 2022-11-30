@@ -9,8 +9,6 @@ import (
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
-	"github.com/faiface/pixel/text"
-	"golang.org/x/image/colornames"
 )
 
 type GridPoint struct {
@@ -25,21 +23,31 @@ func (gp GridPoint) Pos() pixel.Vec {
 	)
 }
 
-type CircuitBoard struct {
-	Filename   string
-	WireGroups map[GridPoint]*WireGroup
-	Switches   map[GridPoint]*bool
-	Lamps      map[GridPoint]*bool
-	Chips      []ChipInstance
+func (gp GridPoint) ToRight() GridPoint {
+	return GridPoint{gp.X + 1, gp.Y}
+}
 
-	mutex sync.Mutex
+type CircuitBoard struct {
+	Filename string
+
+	gridSignals map[GridPoint]bool
+	WireGroups  map[GridPoint]*WireGroup
+
+	Switches map[GridPoint]bool
+	Lamps    map[GridPoint]bool
+	Chips    []ChipInstance
+
+	mutex sync.RWMutex
 }
 
 func NewCircuitBoard() *CircuitBoard {
 	cb := &CircuitBoard{}
+
+	cb.gridSignals = make(map[GridPoint]bool)
 	cb.WireGroups = make(map[GridPoint]*WireGroup)
-	cb.Switches = make(map[GridPoint]*bool)
-	cb.Lamps = make(map[GridPoint]*bool)
+	cb.Switches = make(map[GridPoint]bool)
+	cb.Lamps = make(map[GridPoint]bool)
+
 	cb.Filename = "circuit_save.json"
 	if len(os.Args) > 1 {
 		cb.Filename = os.Args[1]
@@ -71,11 +79,12 @@ func (cb *CircuitBoard) AddWire(x1, y1, x2, y2 int, signal bool) {
 
 func (cb *CircuitBoard) AddChip(chip string, x, y int) {
 	p := GridPoint{x, y}
-	cb.Chips = append(cb.Chips, NewChipInstance(chip, p))
-
+	ci := NewChipInstance(chip, p)
+	cb.Chips = append(cb.Chips, ci)
+	ci.Process(cb)
 }
 
-func (cb CircuitBoard) Save() {
+func (cb *CircuitBoard) Save() {
 	data, err := json.Marshal(cb)
 	if err != nil {
 		fmt.Println(err)
@@ -96,7 +105,7 @@ type marshallableCB struct {
 	Chips    []ChipInstance
 }
 
-func (cb CircuitBoard) MarshalJSON() ([]byte, error) {
+func (cb *CircuitBoard) MarshalJSON() ([]byte, error) {
 	var m marshallableCB
 
 	seenWG := make(map[*WireGroup]bool)
@@ -113,20 +122,18 @@ func (cb CircuitBoard) MarshalJSON() ([]byte, error) {
 		seenWG[wg] = true
 	}
 	for pos, sw := range cb.Switches {
-		if sw == nil {
-			continue
+		if sw {
+			m.Switches = append(m.Switches, []int{
+				pos.X, pos.Y,
+			})
 		}
-		m.Switches = append(m.Switches, []int{
-			pos.X, pos.Y,
-		})
 	}
 	for pos, l := range cb.Lamps {
-		if l == nil {
-			continue
+		if l {
+			m.Lamps = append(m.Lamps, []int{
+				pos.X, pos.Y,
+			})
 		}
-		m.Lamps = append(m.Lamps, []int{
-			pos.X, pos.Y,
-		})
 	}
 	m.Chips = cb.Chips
 	return json.Marshal(m)
@@ -158,75 +165,67 @@ func (cb *CircuitBoard) Load() {
 }
 
 func (cb *CircuitBoard) AddSwitch(x, y int) {
+	// TODO: check if place is free
 	p := GridPoint{x, y}
-	if cb.Switches[p] != nil {
-		return
-	}
-	state := false
-	cb.Switches[p] = &state
+	cb.Switches[p] = true
 }
 
 func (cb *CircuitBoard) AddLamp(x, y int) {
+	// TODO: check if place is free
 	p := GridPoint{x, y}
-	if cb.Lamps[p] != nil {
-		return
-	}
-	state := false
-	cb.Lamps[p] = &state
+	cb.Lamps[p] = true
 }
 
 func (cb *CircuitBoard) PressSwitch(x, y int) {
-	// Switch switch
 	p := GridPoint{x, y}
-	if cb.Switches[p] == nil {
+	if !cb.Switches[p] {
 		return // No switch here
 	}
-	signal := !*cb.Switches[p] // new signal
-	*cb.Switches[p] = signal
-
-	// Switch wire
-	p.X += 1 // they are connected to the right of switch
-	cb.SetWireSignal(p, signal)
+	p.X += 1 // output is to the right
+	// Switch switch
+	cb.SetSignal(p, !cb.GetSignal(p))
 }
 
-func (cb *CircuitBoard) SetWireSignal(p GridPoint, signal bool) {
+func (cb *CircuitBoard) GetSignal(p GridPoint) bool {
+	cb.mutex.RLock()
+	defer cb.mutex.RUnlock()
+	return cb.gridSignals[p]
+}
+
+func (cb *CircuitBoard) SetSignal(p GridPoint, signal bool) {
+	fmt.Printf("cb.SetSignal(%#v, %#v)\n", p, signal)
 	cb.mutex.Lock()
-	defer cb.mutex.Unlock()
+
+	prev := cb.gridSignals[p]
+	if prev == signal { // signal not changed
+		cb.mutex.Unlock()
+		return // no need to update anything
+	}
+
+	cb.gridSignals[p] = signal
+	cb.mutex.Unlock()
+
 	if cb.WireGroups[p] != nil {
 		cb.WireGroups[p].SetSignal(signal, cb)
 	}
-}
-
-func (cb *CircuitBoard) SetElementSignal(p GridPoint, signal bool) {
-	if cb.Lamps[p] != nil {
-		cb.Lamps[p] = &signal
-	}
 	for _, chip := range cb.Chips {
-		// check if we have input in this coordinates
-		inputPinIndex := chip.Location.Y - p.Y
-		if (chip.Location.X == p.X) && (inputPinIndex >= 0) && (inputPinIndex < ChipClasses[chip.Class].InputsCount) {
-			go func(chip ChipInstance) {
-				chip.SetInputSignal(inputPinIndex, signal)
-				for i, out := range chip.Outputs {
-					cb.SetWireSignal(GridPoint{
-						chip.Location.X + 1,
-						chip.Location.Y - i,
-					}, out)
-				}
+		if chip.HasInputAt(p) {
+			go func(ch ChipInstance) {
+				ch.Process(cb)
 			}(chip)
 		}
 	}
 }
 
-func (cb CircuitBoard) Draw(win *pixelgl.Window) {
+func (cb *CircuitBoard) Draw(win *pixelgl.Window) {
 	//start := time.Now()
 	imd := imdraw.New(nil)
 	imd.Precision = 10
 	for p, sw := range cb.Switches {
-		if sw == nil {
+		if !sw {
 			continue
 		}
-		drawSwitch(imd, win, p.Pos(), *sw)
+		drawSwitch(imd, win, p.Pos(), cb.GetSignal(p.ToRight()))
 	}
 
 	for _, chip := range cb.Chips {
@@ -242,22 +241,12 @@ func (cb CircuitBoard) Draw(win *pixelgl.Window) {
 	}
 
 	for p, lamp := range cb.Lamps {
-		if lamp == nil {
+		if !lamp {
 			continue
 		}
-		drawLamp(imd, p.Pos(), *lamp)
+		drawLamp(imd, p.Pos(), cb.GetSignal(p))
 	}
 	imd.Draw(win)
-	for label, locations := range labels {
-		txt := text.New(pixel.ZV, FontAtlas)
-		txt.Color = colornames.Black
-		fmt.Fprint(txt, label)
-		tc := txt.Bounds().Center()
-		for _, loc := range locations {
-			txt.Draw(win, pixel.IM.Moved(loc.Sub(tc)))
-		}
-	}
-	labels = make(map[string][]pixel.Vec)
 	// fmt.Printf("Rendered %d switches, %d chips, %d wire groups and %d lamps in %s\n",
 	// 	len(cb.Switches), len(cb.Chips), len(cb.WireGroups), len(cb.Lamps), time.Since(start),
 	// )
@@ -314,7 +303,7 @@ func (cb *CircuitBoard) CutChips(a, b pixel.Vec) {
 	chips := make([]ChipInstance, 0, len(cb.Chips))
 	for _, c := range cb.Chips {
 		pos := c.Location.Pos()
-		height := max(len(c.Inputs), len(c.Outputs))
+		height := ChipClasses[c.Class].Height()
 		if !lineRectangleIntersect(
 			a.X, a.Y, b.X, b.Y,
 			pos.X, pos.Y-GRID_SIZE*(float64(height)-0.5),

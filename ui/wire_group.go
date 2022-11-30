@@ -1,6 +1,8 @@
 package ui
 
-import "github.com/faiface/pixel/imdraw"
+import (
+	"github.com/faiface/pixel/imdraw"
+)
 
 type Wire struct {
 	A, B GridPoint
@@ -35,9 +37,12 @@ func (wg WireGroup) ConnnectedPoints() (res []GridPoint) {
 }
 
 func (wg *WireGroup) SetSignal(s bool, cb *CircuitBoard) {
+	if wg.Signal == s {
+		return // Already done
+	}
 	wg.Signal = s
 
 	for _, p := range wg.ConnnectedPoints() {
-		cb.SetElementSignal(p, s)
+		cb.SetSignal(p, s)
 	}
 }

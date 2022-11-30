@@ -3,7 +3,7 @@
 
 Inspired by [SICP 3.3.4](https://bunyk.github.io/posts/sicp3.3.4) and [Sebastian Lague](https://www.youtube.com/watch?v=QZwneRb-zqA).
 
-Made in Golang using [Pixel for graphics](https://github.com/faiface/pixel). This project is just a PoC, so is slow, has a lot of bugs and ugly design. If you see something that could be improved - feel free to send a PR or create a ticket.
+Made in Golang using [Pixel for graphics](https://github.com/faiface/pixel). This project is just a PoC, so has some bugs and weird UI design. If you see something that could be improved - feel free to send a PR or create a ticket.
 
 ![screenshot](./screenshot.png)
 
