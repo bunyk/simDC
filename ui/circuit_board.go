@@ -56,9 +56,10 @@ func NewCircuitBoard() *CircuitBoard {
 	return cb
 }
 
-func (cb *CircuitBoard) AddWire(x1, y1, x2, y2 int, signal bool) {
+func (cb *CircuitBoard) AddWire(x1, y1, x2, y2 int) {
 	a := GridPoint{x1, y1}
 	b := GridPoint{x2, y2}
+	signal := cb.GetSignal(a) || cb.GetSignal(b)
 
 	ng := WireGroup{ // Create new group with this wire
 		Wires:  []Wire{{A: a, B: b}},
@@ -74,6 +75,8 @@ func (cb *CircuitBoard) AddWire(x1, y1, x2, y2 int, signal bool) {
 	for _, w := range ng.Wires {
 		cb.WireGroups[w.A] = &ng
 		cb.WireGroups[w.B] = &ng
+		cb.SetSignal(w.A, signal)
+		cb.SetSignal(w.B, signal)
 	}
 }
 
@@ -156,7 +159,7 @@ func (cb *CircuitBoard) Load() {
 		return
 	}
 	for _, wire := range mcb.Wires {
-		cb.AddWire(wire[0], wire[1], wire[2], wire[3], false)
+		cb.AddWire(wire[0], wire[1], wire[2], wire[3])
 	}
 	for _, sw := range mcb.Switches {
 		cb.AddSwitch(sw[0], sw[1])
@@ -198,16 +201,16 @@ func (cb *CircuitBoard) GetSignal(p GridPoint) bool {
 }
 
 func (cb *CircuitBoard) SetSignal(p GridPoint, signal bool) {
-	fmt.Printf("cb.SetSignal(%#v, %#v)\n", p, signal)
+	// fmt.Printf("cb.SetSignal(%#v, %#v)\n", p, signal)
 	cb.mutex.Lock()
 
 	prev := cb.gridSignals[p]
-	if prev == signal { // signal not changed
+	cb.gridSignals[p] = signal // still explicitly set signal so we see node
+	if prev == signal {        // signal not changed
 		cb.mutex.Unlock()
 		return // no need to update anything
 	}
 
-	cb.gridSignals[p] = signal
 	cb.mutex.Unlock()
 
 	if cb.WireGroups[p] != nil {
@@ -245,6 +248,12 @@ func (cb *CircuitBoard) Draw(win *pixelgl.Window) {
 		seenWG[group] = true
 	}
 
+	cb.mutex.RLock()
+	for pos, signal := range cb.gridSignals {
+		drawNode(imd, pos.Pos(), signal)
+	}
+	cb.mutex.RUnlock()
+
 	for p, lamp := range cb.Lamps {
 		if !lamp {
 			continue
@@ -258,29 +267,25 @@ func (cb *CircuitBoard) Draw(win *pixelgl.Window) {
 }
 
 func (cb *CircuitBoard) CutWires(a, b pixel.Vec) {
-	// Gather list of all wires, with their signals
+	// Gather list of all wires
 	var wires []Wire
-	var signals []bool
 	seenWG := make(map[*WireGroup]bool)
 	for _, wg := range cb.WireGroups {
 		if seenWG[wg] {
 			continue
 		}
 		wires = append(wires, wg.Wires...)
-		for range wg.Wires {
-			signals = append(signals, wg.Signal)
-		}
 		seenWG[wg] = true
 	}
 	// Cleanup wireGroups
 	cb.WireGroups = make(map[GridPoint]*WireGroup)
 
 	// Remove wires that are cut, and add remaining wires back
-	for i, wire := range wires {
+	for _, wire := range wires {
 		c := wire.A.Pos()
 		d := wire.B.Pos()
 		if !lineSegmentsIntersect(c.X, c.Y, d.X, d.Y, a.X, a.Y, b.X, b.Y) {
-			cb.AddWire(wire.A.X, wire.A.Y, wire.B.X, wire.B.Y, signals[i])
+			cb.AddWire(wire.A.X, wire.A.Y, wire.B.X, wire.B.Y)
 		}
 	}
 

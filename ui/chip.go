@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/faiface/pixel/imdraw"
@@ -63,14 +62,12 @@ func (ci ChipInstance) HasInputAt(pos GridPoint) bool {
 		return false
 	}
 	index := ci.Location.Y - pos.Y
-	fmt.Println("index=", index)
 	if index < 0 {
 		return false
 	}
 	if index >= ChipClasses[ci.Class].InputsCount {
 		return false
 	}
-	fmt.Printf("%s has input at %#v\n", ci.Class, pos)
 	return true
 }
 
@@ -83,12 +80,9 @@ func (ci *ChipInstance) Process(cb *CircuitBoard) {
 			ci.Location.X, ci.Location.Y - i,
 		})
 	}
-	fmt.Printf("%s at %#v will be updated using %#v inputs\n", ci.Class, ci.Location, inputs)
 	outputs := class.Logic(inputs) // compute result
 
 	time.Sleep(class.Delay) // but slowly
-
-	fmt.Printf("%s at %#v produces output %#v\n", ci.Class, ci.Location, outputs)
 
 	// Produce output
 	for i, out := range outputs {

@@ -26,10 +26,11 @@ func drawWire(imd *imdraw.IMDraw, a, b pixel.Vec, col color.Color) {
 	imd.Push(a)
 	imd.Push(b)
 	imd.Line(WIRE_WIDTH)
+}
 
-	imd.Push(a)
-	imd.Circle(HOLE_RADIUS, 0)
-	imd.Push(b)
+func drawNode(imd *imdraw.IMDraw, pos pixel.Vec, signal bool) {
+	imd.Color = signalColor(signal)
+	imd.Push(pos)
 	imd.Circle(HOLE_RADIUS, 0)
 }
 

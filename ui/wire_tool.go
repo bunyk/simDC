@@ -45,6 +45,5 @@ func addWire(cb *CircuitBoard, a, b pixel.Vec) {
 		int(a.Y/GRID_SIZE),
 		int(b.X/GRID_SIZE),
 		int(b.Y/GRID_SIZE),
-		false,
 	)
 }
