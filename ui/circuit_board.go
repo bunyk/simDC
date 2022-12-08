@@ -9,6 +9,8 @@ import (
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
+
+	"github.com/bunyk/simDC/geometry"
 )
 
 type GridPoint struct {
@@ -266,7 +268,15 @@ func (cb *CircuitBoard) Draw(win *pixelgl.Window) {
 	// )
 }
 
-func (cb *CircuitBoard) CutWires(a, b pixel.Vec) {
+func (cb *CircuitBoard) CutThrough(a, b pixel.Vec) {
+	cut := pixel.L(a, b)
+	cb.cutWires(cut)
+	cb.cutLamps(cut)
+	cb.cutSwitches(cut)
+	cb.cutChips(cut)
+}
+
+func (cb *CircuitBoard) cutWires(cut pixel.Line) {
 	// Gather list of all wires
 	var wires []Wire
 	seenWG := make(map[*WireGroup]bool)
@@ -282,43 +292,39 @@ func (cb *CircuitBoard) CutWires(a, b pixel.Vec) {
 
 	// Remove wires that are cut, and add remaining wires back
 	for _, wire := range wires {
-		c := wire.A.Pos()
-		d := wire.B.Pos()
-		if !lineSegmentsIntersect(c.X, c.Y, d.X, d.Y, a.X, a.Y, b.X, b.Y) {
+		if !geometry.LineSegmentsIntersect(wire.AsLine(), cut) {
 			cb.AddWire(wire.A.X, wire.A.Y, wire.B.X, wire.B.Y)
 		}
 	}
 
 }
 
-func (cb *CircuitBoard) CutLamps(a, b pixel.Vec) {
+func (cb *CircuitBoard) cutLamps(cut pixel.Line) {
 	for p := range cb.Lamps {
-		pos := p.Pos()
-		if lineCircleIntersect(a.X, a.Y, b.X, b.Y, pos.X, pos.Y, LAMP_RADIUS) {
+		if geometry.LineCircleIntersect(cut, p.Pos(), LAMP_RADIUS) {
 			delete(cb.Lamps, p)
 		}
 	}
 }
 
-func (cb *CircuitBoard) CutSwitches(a, b pixel.Vec) {
+func (cb *CircuitBoard) cutSwitches(cut pixel.Line) {
 	for p := range cb.Switches {
 		pos := p.Pos()
-		if lineRectangleIntersect(a.X, a.Y, b.X, b.Y, pos.X, pos.Y-GRID_SIZE/2, pos.X+GRID_SIZE, pos.Y+GRID_SIZE/2) {
+		if geometry.LineRectangleIntersect(cut, pixel.R(pos.X, pos.Y-GRID_SIZE/2, pos.X+GRID_SIZE, pos.Y+GRID_SIZE/2)) {
 			delete(cb.Switches, p)
 		}
 	}
 }
 
-func (cb *CircuitBoard) CutChips(a, b pixel.Vec) {
+func (cb *CircuitBoard) cutChips(cut pixel.Line) {
 	chips := make([]ChipInstance, 0, len(cb.Chips))
 	for _, c := range cb.Chips {
 		pos := c.Location.Pos()
 		height := ChipClasses[c.Class].Height()
-		if !lineRectangleIntersect(
-			a.X, a.Y, b.X, b.Y,
+		if !geometry.LineRectangleIntersect(cut, pixel.R(
 			pos.X, pos.Y-GRID_SIZE*(float64(height)-0.5),
 			pos.X+GRID_SIZE, pos.Y+GRID_SIZE/2,
-		) {
+		)) {
 			chips = append(chips, c)
 		}
 	}

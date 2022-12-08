@@ -1,36 +1,40 @@
-package ui
+package geometry
+
+import (
+	"fmt"
+
+	"github.com/faiface/pixel"
+)
 
 // FASTER LINE SEGMENT INTERSECTION
 // GRAPHICS GEMS III
-func lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4 float64) bool {
-	ax := x2 - x1
-	ay := y2 - y1
-	bx := x3 - x4
-	by := y3 - y4
+func LineSegmentsIntersect(a, b pixel.Line) bool {
+	da := a.B.Sub(a.A)
+	db := b.A.Sub(b.B)
 
-	d := ay*bx - ax*by
+	d := da.Y*db.X - da.X*db.Y
 	if d == 0 { // collinear
 		return false
 	}
-	cx := x1 - x3
-	cy := y1 - y3
-	a := by*cx - bx*cy
+	c := a.A.Sub(b.A)
+	d1 := db.Y*c.X - db.X*c.Y
+	fmt.Println(c, d1)
 	if d > 0 {
-		if a < 0 || a > d {
+		if d1 < 0 || d1 > d {
 			return false
 		}
 	} else {
-		if a > 0 || a < d {
+		if d1 > 0 || d1 < d {
 			return false
 		}
 	}
-	b := ax*cy - ay*cx
+	d2 := da.X*c.Y - da.Y*c.X
 	if d > 0 {
-		if b < 0 || b > d {
+		if d2 < 0 || d2 > d {
 			return false
 		}
 	} else {
-		if b > 0 || b < d {
+		if d2 > 0 || d2 < d {
 			return false
 		}
 	}
@@ -42,12 +46,12 @@ func sqr(x float64) float64 {
 }
 
 // https://math.stackexchange.com/a/4088608/571313
-func lineCircleIntersect(x1, y1, x2, y2, cx, cy, r float64) bool {
+func LineCircleIntersect(l pixel.Line, center pixel.Vec, r float64) bool {
 	// Change coordinate origin to be at the circle center
-	x1 = x1 - cx
-	y1 = y1 - cy
-	x2 = x2 - cx
-	y2 = y2 - cy
+	x1 := l.A.X - center.X
+	y1 := l.A.Y - center.Y
+	x2 := l.B.X - center.X
+	y2 := l.B.Y - center.Y
 
 	// Square the radius to avoid needing any square roots
 	r2 := r * r
@@ -90,9 +94,11 @@ func lineCircleIntersect(x1, y1, x2, y2, cx, cy, r float64) bool {
 	return true
 }
 
-func lineRectangleIntersect(x1, y1, x2, y2, xmin, ymin, xmax, ymax float64) bool {
-	return (lineSegmentsIntersect(x1, y1, x2, y2, xmin, ymin, xmax, ymin) || // bottom
-		lineSegmentsIntersect(x1, y1, x2, y2, xmax, ymin, xmax, ymax) || // right
-		lineSegmentsIntersect(x1, y1, x2, y2, xmin, ymin, xmin, ymax) || // left
-		lineSegmentsIntersect(x1, y1, x2, y2, xmin, ymax, xmax, ymax)) // top
+func LineRectangleIntersect(l pixel.Line, r pixel.Rect) bool {
+	for _, e := range r.Edges() {
+		if LineSegmentsIntersect(l, e) {
+			return true
+		}
+	}
+	return false
 }

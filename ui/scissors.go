@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
@@ -21,7 +19,7 @@ func (s *Scissors) Update(win *pixelgl.Window, cb *CircuitBoard, mp pixel.Vec) {
 		return
 	}
 	if win.JustReleased(pixelgl.MouseButtonLeft) && s.CutStart != nil {
-		cutThrough(cb, *s.CutStart, mp)
+		cb.CutThrough(*s.CutStart, mp)
 		s.CutStart = nil
 	}
 }
@@ -34,12 +32,4 @@ func (s Scissors) Draw(win *pixelgl.Window, mp pixel.Vec) {
 		imd.Line(CUT_WIDTH)
 		imd.Draw(win)
 	}
-}
-
-func cutThrough(cb *CircuitBoard, a, b pixel.Vec) {
-	fmt.Println("Cutting", a, b)
-	cb.CutWires(a, b)
-	cb.CutLamps(a, b)
-	cb.CutSwitches(a, b)
-	cb.CutChips(a, b)
 }

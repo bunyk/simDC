@@ -18,10 +18,9 @@ You could move across space with arrow keys and zoom using mouse wheel. All the 
 
 Nice to have in the future in no particular order:
 
-- Optimize drawing, so FPS does not drop so much on big circuits
-- Select, copy, move
-- Better shapes for gates so they are easily distinguishable when small
+- When you add wire that ends on other wire (`line.Contains(v pixel.Vec)`), but not it's end - split that wire in two to avoid confusion. 
 - Adding a custom text labels, to help with understanding circuits
+- Select, copy, move
 - Toolbar with icons instead of keyboard
 - New elements like flip-flops, buttons & LED display, so you could build a calculator or something
 - A way to "integrate" circuit into custom chips

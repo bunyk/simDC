@@ -1,11 +1,16 @@
 package ui
 
 import (
+	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 )
 
 type Wire struct {
 	A, B GridPoint
+}
+
+func (w Wire) AsLine() pixel.Line {
+	return pixel.L(w.A.Pos(), w.B.Pos())
 }
 
 type WireGroup struct {

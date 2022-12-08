@@ -4,7 +4,7 @@ import (
 	"math"
 	"os"
 
-	"github.com/bunyk/simcomp/sprites"
+	"github.com/bunyk/simDC/sprites"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/pixelgl"
 )

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/bunyk/simcomp/ui"
+	"github.com/bunyk/simDC/ui"
 	"github.com/faiface/pixel/pixelgl"
 )
 
