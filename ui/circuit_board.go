@@ -58,9 +58,32 @@ func NewCircuitBoard() *CircuitBoard {
 	return cb
 }
 
+func (cb *CircuitBoard) SplitWire(pos GridPoint) {
+	seenWG := make(map[*WireGroup]bool)
+	for _, wg := range cb.WireGroups {
+		if seenWG[wg] {
+			continue
+		}
+		for _, wire := range wg.Wires {
+			if pos == wire.A || pos == wire.B { // one of the ends
+				continue // not interested
+			}
+			if wire.AsLine().Contains(pos.Pos()) {
+				nw := Wire{pos, wire.B}
+				wire.B = pos
+				wg.Wires = append(wg.Wires, nw)
+				cb.SetSignal(pos, wg.Signal)
+			}
+		}
+		seenWG[wg] = true
+	}
+}
+
 func (cb *CircuitBoard) AddWire(x1, y1, x2, y2 int) {
 	a := GridPoint{x1, y1}
 	b := GridPoint{x2, y2}
+	cb.SplitWire(a)
+	cb.SplitWire(b)
 	signal := cb.GetSignal(a) || cb.GetSignal(b)
 
 	ng := WireGroup{ // Create new group with this wire
